@@ -30,9 +30,11 @@ response <- GET(
       "AND closed_date < '2026-06-02T00:00:00'",
       "AND community_area IS NOT NULL"
     ),
-    "$limit" = 50000
+    "$limit" = 10000
   )
 )
 stop_for_status(response)
 
 data <- fromJSON(content(response, "text", encoding = "UTF-8"))
+
+
