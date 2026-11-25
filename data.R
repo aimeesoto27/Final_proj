@@ -44,6 +44,7 @@ data <- data[, !names(data) %in% c(
   "parent_sr_number" #no need for this column
 )]
 
-
-
+#Evaluating data quality and fairness
+table(data$community_area) #community area #28 is an outlier with 4942 service requests
+table(data$sr_type) #311 information only call is by far the most popular
 
