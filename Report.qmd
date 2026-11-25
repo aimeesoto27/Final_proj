@@ -1,0 +1,65 @@
+---
+title: "Reproducible Reporting"
+params:
+  sr_type: "POTHOLE IN STREET""
+  include_plot: TRUE
+---
+
+## Data summary
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+library(tidyverse)
+library(httr)
+library(jsonlite)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+```
+
+This report analyzes 311 service requests in Chicago by `r params$sr_type`
+
+```{r fetch the data}
+dataset_id <- "v6vf-nfxy"
+url <- paste0(
+  "https://data.cityofchicago.org/resource/",
+  dataset_id,
+  ".json"
+)
+
+response <- GET(
+  url,
+  query = list(
+    "$where" = paste(
+      "created_department = '311 City Services'", #Data was entered by 311 services
+      "AND created_date >= '2026-01-01T00:00:00'", #Created first 6 months of 2026
+      "AND created_date < '2026-06-02T00:00:00'", 
+      "AND closed_date >= '2026-01-01T00:00:00'", 
+      "AND closed_date < '2026-06-02T00:00:00'", #Closed first 6 months of 2026
+      "AND community_area IS NOT NULL" #No null values in this column
+    ),
+    "$limit" = 10000
+  )
+)
+stop_for_status(response)
+
+data <- fromJSON(content(response, "text", encoding = "UTF-8"))
+```
+
+```{r filter}
+filtered <- data%>%
+  filter(
+    toupper(trimws(sr_type)) != "311 INFORMATION ONLY",
+    community_area == params$community_area,
+    sr_type == params$sr_type
+    )
+
+cat(
+  "Found", nrow(filtered), "Service Requests in", 
+  params$community_area, "Most common type of service requests are",
+  params$sr_type,"\n")
+```
+
+```{r summarize}
+
+```
