@@ -3,7 +3,6 @@ title: "Reproducible Reporting"
 params:
   community_area1: "45"
   community_area2: "49"
-  sr_type: "POTHOLE IN STREET"
   top_n: 5
   include_plot: TRUE
 ---
@@ -20,7 +19,7 @@ library(lubridate)
 library(ggplot2)
 ```
 
-This report analyzes 311 service requests by community areas in Chicago: `r params$sr_type`
+This report analyzes 311 service requests by community areas `r params$community_area1` and `r params$community_area2` in Chicago
 
 ```{r fetch the data}
 dataset_id <- "v6vf-nfxy"
@@ -48,7 +47,7 @@ response <- GET(
 )
 ```
 
-```{r data filters}
+```{r data render}
 stop_for_status(response)
 
 data <- fromJSON(content(response, "text", encoding = "UTF-8"))
@@ -77,6 +76,10 @@ cat(
 )
 ```
 
+- **Total requests in filtered dataset:** `r nrow(filtered)`
+
+## Summary Table of service requests in Community #`r params$community_area1` and Community #`r params$community_area2`
+
 ```{r summarize}
 top_sr <- filtered %>%
   count(sr_type, sort = TRUE) %>%
@@ -90,20 +93,38 @@ comparison <- filtered %>%
   group_by(community_area, sr_type) %>%
   summarise(
     requests = n(),
-    median_response_hours = median(response_hours, na.rm = TRUE),
+    median_response_hours = round(
+      median(response_hours, na.rm = TRUE),
+      2
+    ),
     .groups = "drop"
+  ) %>%
+  arrange(community_area, desc(requests)) %>%
+  rename(
+    `Community Area` = community_area,
+    `Service Request Type` = sr_type,
+    `Number of Requests` = requests,
+    `Median Response (Hours)` = median_response_hours
   )
-
-comparison
 ```
+
+## Visualization 1
+```{r table}
+knitr::kable(
+  comparison,
+  format = "pipe",
+  caption = "Service requests and median response time by community area"
+)
+```
+## Visualization 2
 ```{r plot}
 ggplot(
   comparison,
-  aes(x = sr_type, y = median_response_hours, fill = community_area)
+  aes(x = `Service Request Type`, y = `Median Response (Hours)`, fill = `Community Area`)
   ) +
   geom_col(position = position_dodge(width = 0.8)) +
   geom_text(
-    aes(label = round(median_response_hours)),
+    aes(label = round(`Median Response (Hours)`)),
     position = position_dodge(width = 0.8),
     vjust = -0.3,
     size = 3
@@ -131,6 +152,7 @@ top_type_by_area <- filtered %>%
   ungroup()
 ```
 
+## Visualization 3
 ```{r}
 ggplot(
   top_type_by_area,
@@ -139,10 +161,10 @@ ggplot(
   geom_col(show.legend = FALSE) +
   geom_text(
     aes(label = paste0(
-      requests, " requests | ",
+      requests, " requests\n",
       round(median_response_hours, 2), " hrs median"
     )),
-    hjust = -0.1,
+    hjust = 0.3,
     size = 3.5
   ) +
   coord_flip() +
